@@ -10,6 +10,7 @@ public class PlayerMove : MonoBehaviour
     public float Health = 100;
     public bool invulnerability;
     public float invulnerabilityStarted;
+    public float fatStarted;
 
     void Start()
     {
@@ -27,6 +28,10 @@ public class PlayerMove : MonoBehaviour
         if ((Time.time - invulnerabilityStarted) >= 10)
         {
             invulnerability = false;
+        }
+        if ((Time.time - fatStarted) >= 10)
+        {
+            transform.localScale = new Vector3(1, 1, 1);
         }
 
         transform.parent.transform.position = transform.position;

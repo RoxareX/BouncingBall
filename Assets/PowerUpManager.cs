@@ -27,7 +27,7 @@ public class PowerUpManager : MonoBehaviour
     {
         if ((Time.time - LastPowerUpSpawn) >= 2)
         {
-            PowerUpObject = Instantiate(Powerup[Random.Range(0, 2)], new Vector3(Random.Range(-10, 10), Random.Range(-4, 4), 0), transform.rotation);
+            PowerUpObject = Instantiate(Powerup[Random.Range(0, 3)], new Vector3(Random.Range(-10, 10), Random.Range(-4, 4), 0), transform.rotation);
             spawned = true;
         }
     }

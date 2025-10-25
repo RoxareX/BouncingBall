@@ -77,11 +77,11 @@ public class CombatManager : MonoBehaviour
 
         if (raySpawned)
         {
-            DestroyLightrayIn(20);
+            DestroyLightrayIn(22);
         }
         else
         {
-            SpawnLightrayIn(22);
+            SpawnLightrayIn(20);
         }
     }
 
@@ -120,7 +120,7 @@ public class CombatManager : MonoBehaviour
     }
     public void DestroyLightrayIn(int timeTillNextSpawn)
     {
-        if ((Time.time - LastTimeRaySpawned) >= 4)
+        if ((Time.time - LastTimeRaySpawned) >= timeTillNextSpawn)
         {
             try
             {
