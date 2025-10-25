@@ -11,6 +11,8 @@ public class PlayerMove : MonoBehaviour
     public bool invulnerability;
     public float invulnerabilityStarted;
     public float fatStarted;
+    public float PowerUp_ultimateControl = 1f;
+    public float ultimateControlStarted;
 
     void Start()
     {
@@ -25,6 +27,8 @@ public class PlayerMove : MonoBehaviour
             gameObject.SetActive(false);
             return;
         }
+
+        // Resets
         if ((Time.time - invulnerabilityStarted) >= 10)
         {
             invulnerability = false;
@@ -33,7 +37,13 @@ public class PlayerMove : MonoBehaviour
         {
             transform.localScale = new Vector3(1, 1, 1);
         }
+        if ((Time.time - ultimateControlStarted) >= 10)
+        {
+            PowerUp_ultimateControl = 1f;
+        }
 
+
+        // Controls
         transform.parent.transform.position = transform.position;
         transform.localPosition = new Vector3(0, 0, 0);
 
@@ -41,19 +51,19 @@ public class PlayerMove : MonoBehaviour
 
         if (Input.GetKey("w"))
         {
-            rb2D.AddForce(transform.parent.transform.up * 0.4f);
+            rb2D.AddForce(transform.parent.transform.up * 0.5f * PowerUp_ultimateControl);
         }
         if (Input.GetKey("s"))
         {
-            rb2D.AddForce(-transform.parent.transform.up * 0.4f);
+            rb2D.AddForce(-transform.parent.transform.up * 0.5f * PowerUp_ultimateControl);
         }
         if (Input.GetKey("d"))
         {
-            rb2D.AddForce(transform.parent.transform.right * 0.4f);
+            rb2D.AddForce(transform.parent.transform.right * 0.5f * PowerUp_ultimateControl);
         }
         if (Input.GetKey("a"))
         {
-            rb2D.AddForce(-transform.parent.transform.right * 0.4f);
+            rb2D.AddForce(-transform.parent.transform.right * 0.5f * PowerUp_ultimateControl);
         }
 
     }
@@ -75,8 +85,11 @@ public class PlayerMove : MonoBehaviour
         {
             var damagetodo = Mathf.Round(rb2D.linearVelocity.magnitude);
             combatManager.DamageOpponent(damagetodo);
+
             combatManager.SpawnHitParticle(collision);
+            combatManager.BackgroundLightFlash(collision);
             combatManager.shake = 0.2f;
+
         }
         
     }

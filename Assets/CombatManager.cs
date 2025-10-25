@@ -1,5 +1,7 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.Rendering.Universal;
+using System.Collections;
 
 public class CombatManager : MonoBehaviour
 {
@@ -16,17 +18,20 @@ public class CombatManager : MonoBehaviour
     public TMP_Text WinnerText;
 
     public GameObject LightRay;
+    public TMP_Text LightRayText;
 
     public GameObject explosion;
+    public GameObject backgroundFlash;
 
     private PlayerMove pmScript;
     private SecondPlayerMove secondpmScript;
     private float LastTimePlayerTookDamage = 0;
     private float LastTimeOpponentTookDamage = 0;
 
-    private float LastTimeRaySpawned = 0;
-    private bool raySpawned;
+    private float lastTimeRaySpawned = 0;
+    private bool isSpawning = false;
     private GameObject RayObject;
+    private Vector3 lightrayspawnpos;
 
     public Camera cameraObject; // set this via inspector
     public float shake;
@@ -39,16 +44,19 @@ public class CombatManager : MonoBehaviour
         secondpmScript = opponent.GetComponent<SecondPlayerMove>();
     }
 
-    void FixedUpdate() 
+    void FixedUpdate()
     {
-        if (shake > 0) {
+        if (shake > 0)
+        {
             Vector3 shakeCalc = Random.insideUnitSphere * shakeAmount / 10;
 
             cameraObject.transform.localPosition = new Vector3(shakeCalc.x, shakeCalc.y, -10);
 
             shake -= Time.deltaTime * decreaseFactor;
 
-        } else {
+        }
+        else
+        {
             shake = 0.0f;
             cameraObject.transform.localPosition = new Vector3(0, 0, -10);
         }
@@ -75,13 +83,9 @@ public class CombatManager : MonoBehaviour
             gameHasEnded = true;
         }
 
-        if (raySpawned)
+        if (!isSpawning && Time.time - lastTimeRaySpawned >= 20)
         {
-            DestroyLightrayIn(22);
-        }
-        else
-        {
-            SpawnLightrayIn(20);
+            StartCoroutine(SpawnRayWithWarning());
         }
     }
 
@@ -110,39 +114,98 @@ public class CombatManager : MonoBehaviour
         }
     }
 
-    public void SpawnLightrayIn(int timeTillNextSpawn)
+    private IEnumerator SpawnRayWithWarning()
     {
-        if ((Time.time - LastTimeRaySpawned) >= timeTillNextSpawn)
-        {
-            RayObject = Instantiate(LightRay, new Vector3(Random.Range(-10, 10), 0, 0), transform.rotation);
-            raySpawned = true;
-        }
-    }
-    public void DestroyLightrayIn(int timeTillNextSpawn)
-    {
-        if ((Time.time - LastTimeRaySpawned) >= timeTillNextSpawn)
-        {
-            try
-            {
-                Destroy(RayObject);
-            }
-            catch (System.Exception)
-            {
-                Debug.Log("Ray Already destroyed");
-            }
+        isSpawning = true;
 
-            raySpawned = false;
-            LastTimeRaySpawned = Time.time;
+        // Pick a random position for the upcoming ray
+        Vector3 spawnPos = new Vector3(Random.Range(-9f, 9f), 0f, 0f);
+
+        // Convert to screen space for the overlay text
+        Vector3 screenPos = Camera.main.WorldToScreenPoint(spawnPos);
+        LightRayText.transform.position = screenPos;
+
+        // Show the warning text
+        LightRayText.gameObject.SetActive(true);
+
+        // Wait 3 seconds before spawning the actual ray
+        yield return new WaitForSeconds(3f);
+
+        // Hide the text
+        LightRayText.gameObject.SetActive(false);
+
+        float t = 0;
+
+        // Spawn the light ray in world space
+        GameObject lightRayObj = Instantiate(LightRay, spawnPos, Quaternion.identity);
+
+
+        while (t < 1.0f)
+        {
+            t += Time.deltaTime / 2;
+            lightRayObj.transform.localScale = new Vector3(Mathf.Lerp(0.1f, 1f, t), 1, 1);
+
+            yield return null;
         }
+
+        yield return new WaitForSeconds(1f);
+
+        Destroy(lightRayObj);
+
+        // Reset state
+        lastTimeRaySpawned = Time.time;
+        isSpawning = false;
     }
+
 
     public void SpawnHitParticle(Collision2D collision)
     {
-        foreach (ContactPoint2D missileHit in collision.contacts)
+        foreach (ContactPoint2D unitHit in collision.contacts)
         {
-            Vector2 hitPoint = missileHit.point;
+            Vector2 hitPoint = unitHit.point;
             GameObject spawnedExplosion = Instantiate(explosion, new Vector3(hitPoint.x, hitPoint.y, 0), Quaternion.identity);
             Destroy(spawnedExplosion, 2f);
         }
+    }
+
+    public void BackgroundLightFlash(Collision2D collision)
+    {
+        foreach (ContactPoint2D unitHit in collision.contacts)
+        {
+            Vector2 hitPoint = unitHit.point;
+            GameObject spawnedbgFlash = Instantiate(
+                backgroundFlash, 
+                new Vector3(hitPoint.x, hitPoint.y, 0f), 
+                Quaternion.identity
+            );
+
+            Light2D flashLight = spawnedbgFlash.GetComponent<Light2D>();
+            Light2D flashLightchild = spawnedbgFlash.transform.GetChild(0).GetComponent<Light2D>();
+            if (flashLight != null)
+            {
+                StartCoroutine(DimLightAndDestroy(flashLight, 1f));
+                StartCoroutine(DimLightAndDestroy(flashLightchild, 1f));
+            }
+            else
+            {
+                Destroy(spawnedbgFlash, 1f); // fallback if no Light2D found
+            }
+        }
+    }
+
+    private System.Collections.IEnumerator DimLightAndDestroy(Light2D light, float duration)
+    {
+        float startIntensity = light.intensity;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            light.intensity = Mathf.Lerp(startIntensity, 0f, elapsed / duration);
+            yield return null;
+        }
+
+        light.intensity = 0f;
+        Destroy(light.gameObject);
     }
 }
