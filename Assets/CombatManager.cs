@@ -15,15 +15,43 @@ public class CombatManager : MonoBehaviour
     public bool gameHasEnded;
     public TMP_Text WinnerText;
 
+    public GameObject LightRay;
+
+    public GameObject explosion;
+
     private PlayerMove pmScript;
     private SecondPlayerMove secondpmScript;
     private float LastTimePlayerTookDamage = 0;
     private float LastTimeOpponentTookDamage = 0;
 
+    private float LastTimeRaySpawned = 0;
+    private bool raySpawned;
+    private GameObject RayObject;
+
+    public Camera cameraObject; // set this via inspector
+    public float shake;
+    public float shakeAmount = 0.7f;
+    public float decreaseFactor = 1.0f;
+
     void Start()
     {
         pmScript = player.GetComponent<PlayerMove>();
         secondpmScript = opponent.GetComponent<SecondPlayerMove>();
+    }
+
+    void FixedUpdate() 
+    {
+        if (shake > 0) {
+            Vector3 shakeCalc = Random.insideUnitSphere * shakeAmount / 10;
+
+            cameraObject.transform.localPosition = new Vector3(shakeCalc.x, shakeCalc.y, -10);
+
+            shake -= Time.deltaTime * decreaseFactor;
+
+        } else {
+            shake = 0.0f;
+            cameraObject.transform.localPosition = new Vector3(0, 0, -10);
+        }
     }
 
     // Update is called once per frame
@@ -45,6 +73,15 @@ public class CombatManager : MonoBehaviour
             WinnerText.text = "Player 1 Has Won!";
             endScreen.SetActive(true);
             gameHasEnded = true;
+        }
+
+        if (raySpawned)
+        {
+            DestroyLightrayIn(20);
+        }
+        else
+        {
+            SpawnLightrayIn(22);
         }
     }
 
@@ -70,6 +107,42 @@ public class CombatManager : MonoBehaviour
         {
             secondpmScript.Health -= damage;
             LastTimeOpponentTookDamage = Time.time;
+        }
+    }
+
+    public void SpawnLightrayIn(int timeTillNextSpawn)
+    {
+        if ((Time.time - LastTimeRaySpawned) >= timeTillNextSpawn)
+        {
+            RayObject = Instantiate(LightRay, new Vector3(Random.Range(-10, 10), 0, 0), transform.rotation);
+            raySpawned = true;
+        }
+    }
+    public void DestroyLightrayIn(int timeTillNextSpawn)
+    {
+        if ((Time.time - LastTimeRaySpawned) >= 4)
+        {
+            try
+            {
+                Destroy(RayObject);
+            }
+            catch (System.Exception)
+            {
+                Debug.Log("Ray Already destroyed");
+            }
+
+            raySpawned = false;
+            LastTimeRaySpawned = Time.time;
+        }
+    }
+
+    public void SpawnHitParticle(Collision2D collision)
+    {
+        foreach (ContactPoint2D missileHit in collision.contacts)
+        {
+            Vector2 hitPoint = missileHit.point;
+            GameObject spawnedExplosion = Instantiate(explosion, new Vector3(hitPoint.x, hitPoint.y, 0), Quaternion.identity);
+            Destroy(spawnedExplosion, 2f);
         }
     }
 }

@@ -70,6 +70,9 @@ public class PlayerMove : MonoBehaviour
         {
             var damagetodo = Mathf.Round(rb2D.linearVelocity.magnitude);
             combatManager.DamageOpponent(damagetodo);
+            combatManager.SpawnHitParticle(collision);
+            combatManager.shake = 0.2f;
         }
+        
     }
 }
